@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ふたりの家計簿">
+<title>💰 ふたりの家計簿</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0F0F1A;
+    --card: #1C1C35;
+    --card2: #16162A;
+    --border: rgba(255,255,255,0.08);
+    --text: #E8E8F0;
+    --text2: #8080B0;
+    --text3: #6060A0;
+    --blue: #5B9EFF;
+    --purple: #7C6AF7;
+    --pink: #FF6B9D;
+    --red: #FF6B6B;
+    --teal: #4ECDC4;
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'Noto Sans JP', sans-serif; overflow-x: hidden; }
+  body { padding-bottom: calc(72px + var(--safe-bottom)); }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 3px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #3A3A6A; border-radius: 2px; }
+
+  /* Layout */
+  .header {
+    position: sticky; top: 0; z-index: 50;
+    background: linear-gradient(180deg, rgba(15,15,26,0.98) 0%, rgba(15,15,26,0.92) 100%);
+    backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+    padding: env(safe-area-inset-top, 0px) 0 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .header-inner { padding: 16px 16px 0; max-width: 600px; margin: 0 auto; }
+  .header-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .app-title { font-size: 18px; font-weight: 700; background: linear-gradient(135deg, var(--purple), var(--blue)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .app-subtitle { font-size: 11px; color: var(--text3); margin-top: 2px; }
+
+  /* Tabs */
+  .tabs { display: flex; gap: 0; overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none; }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab-btn {
+    flex: none; border: none; background: none; color: var(--text3);
+    font-family: inherit; font-size: 12px; font-weight: 500;
+    padding: 10px 14px; border-bottom: 2px solid transparent;
+    cursor: pointer; white-space: nowrap; transition: all 0.2s;
+  }
+  .tab-btn.active { color: var(--purple); border-bottom-color: var(--purple); }
+
+  /* Content */
+  .content { max-width: 600px; margin: 0 auto; padding: 16px 14px; }
+
+  /* Cards */
+  .card {
+    background: linear-gradient(135deg, var(--card), var(--card2));
+    border: 1px solid var(--border); border-radius: 18px; padding: 20px;
+    margin-bottom: 12px;
+  }
+  .card-title { font-size: 13px; font-weight: 600; margin-bottom: 14px; }
+
+  /* Grid */
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+  .mini-card {
+    background: linear-gradient(135deg, #1E1E40, #1A1A30);
+    border: 1px solid var(--border); border-radius: 14px; padding: 14px;
+  }
+  .mini-label { font-size: 10px; color: var(--text2); margin-bottom: 6px; }
+  .mini-value { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
+
+  /* Progress */
+  .progress { height: 6px; background: rgba(255,255,255,0.06); border-radius: 999px; overflow: hidden; margin-top: 6px; }
+  .progress-fill { height: 100%; border-radius: 999px; transition: width 0.6s ease; }
+
+  /* Ratio bar */
+  .ratio-bar { height: 28px; border-radius: 10px; overflow: hidden; display: flex; margin-top: 12px; }
+  .ratio-seg {
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 600; color: white; transition: width 0.6s ease;
+  }
+
+  /* Expense row */
+  .expense-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.04);
+  }
+  .expense-row:last-child { border-bottom: none; }
+  .expense-icon { font-size: 22px; width: 36px; text-align: center; flex-shrink: 0; }
+  .expense-info { flex: 1; min-width: 0; }
+  .expense-name { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .expense-meta { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 3px; }
+  .badge {
+    display: inline-flex; align-items: center; padding: 2px 7px;
+    border-radius: 999px; font-size: 10px; font-weight: 500;
+  }
+  .expense-amount { font-size: 14px; font-weight: 700; color: var(--red); white-space: nowrap; }
+  .del-btn { background: none; border: none; font-size: 15px; cursor: pointer; opacity: 0.5; padding: 4px; }
+
+  /* Inputs */
+  .input, .select, textarea {
+    background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 10px; padding: 12px 14px; color: var(--text);
+    font-family: inherit; font-size: 14px; width: 100%; outline: none;
+    transition: border-color 0.2s; -webkit-appearance: none; appearance: none;
+  }
+  .input:focus, .select:focus, textarea:focus { border-color: var(--purple); }
+  .select option { background: #1C1C35; }
+  textarea { resize: vertical; }
+  .form-label { display: block; font-size: 11px; color: var(--text2); margin-bottom: 6px; }
+  .form-group { margin-bottom: 12px; }
+
+  /* Buttons */
+  .btn {
+    border: none; cursor: pointer; border-radius: 12px;
+    font-family: inherit; font-weight: 600; transition: all 0.15s;
+    -webkit-appearance: none; appearance: none;
+  }
+  .btn:active { transform: scale(0.97); }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--purple), var(--blue));
+    color: white; padding: 13px 20px; font-size: 14px; width: 100%;
+    box-shadow: 0 4px 20px rgba(124,106,247,0.3);
+  }
+  .btn-ghost {
+    background: rgba(255,255,255,0.07); color: var(--text2);
+    padding: 10px 16px; font-size: 13px;
+  }
+  .btn-ghost:active { background: rgba(255,255,255,0.12); }
+  .btn-sm { padding: 8px 14px; font-size: 13px; }
+
+  /* Person toggle */
+  .person-toggle { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .person-btn {
+    border: 1px solid rgba(255,255,255,0.1); border-radius: 10px;
+    background: rgba(255,255,255,0.04); color: var(--text2);
+    padding: 11px; font-size: 13px; font-family: inherit; cursor: pointer;
+    transition: all 0.2s; font-weight: 500; text-align: center;
+  }
+  .person-btn.active-h { background: rgba(91,158,255,0.15); color: var(--blue); border-color: var(--blue); }
+  .person-btn.active-w { background: rgba(255,107,157,0.15); color: var(--pink); border-color: var(--pink); }
+
+  /* FAB */
+  .fab {
+    position: fixed; bottom: calc(76px + var(--safe-bottom)); right: 18px;
+    width: 52px; height: 52px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--purple), var(--blue));
+    border: none; color: white; font-size: 22px; cursor: pointer; z-index: 40;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 6px 24px rgba(124,106,247,0.45);
+    transition: transform 0.15s;
+  }
+  .fab:active { transform: scale(0.92); }
+
+  /* Bottom nav */
+  .bottom-nav {
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
+    background: rgba(15,15,26,0.97); backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid var(--border);
+    display: flex; padding-bottom: var(--safe-bottom);
+  }
+  .nav-btn {
+    flex: 1; border: none; background: none; cursor: pointer;
+    padding: 10px 4px 8px; display: flex; flex-direction: column;
+    align-items: center; gap: 3px; color: var(--text3);
+    font-family: inherit; font-size: 10px; font-weight: 500; transition: color 0.2s;
+  }
+  .nav-btn.active { color: var(--purple); }
+  .nav-icon { font-size: 20px; line-height: 1; }
+
+  /* Modal */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 100;
+    display: flex; align-items: flex-end; justify-content: center;
+    padding: 0;
+  }
+  .modal {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 24px 24px 0 0; padding: 20px 18px;
+    width: 100%; max-width: 600px;
+    max-height: 92vh; overflow-y: auto;
+    padding-bottom: calc(20px + var(--safe-bottom));
+    animation: slideUp 0.3s ease;
+  }
+  @keyframes slideUp { from { transform: translateY(60px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  .modal-handle { width: 36px; height: 4px; background: rgba(255,255,255,0.15); border-radius: 2px; margin: 0 auto 18px; }
+  .modal-title { font-size: 16px; font-weight: 700; margin-bottom: 18px; text-align: center; }
+
+  /* Notification */
+  .notif {
+    position: fixed; top: calc(env(safe-area-inset-top, 0px) + 16px); left: 50%;
+    transform: translateX(-50%); z-index: 200;
+    padding: 11px 22px; border-radius: 12px; font-size: 13px; font-weight: 500;
+    white-space: nowrap; box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    animation: notifIn 0.3s ease;
+  }
+  @keyframes notifIn { from { opacity: 0; transform: translateX(-50%) translateY(-10px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+
+  /* AI result box */
+  .ai-box {
+    background: rgba(124,106,247,0.08); border: 1px solid rgba(124,106,247,0.25);
+    border-radius: 12px; padding: 14px; margin-top: 12px;
+  }
+  .ai-box-title { font-size: 12px; font-weight: 600; color: var(--purple); margin-bottom: 8px; }
+  .ai-box-row { font-size: 12px; color: #C0C0E0; margin-bottom: 4px; }
+
+  /* Savings positive/negative */
+  .savings-positive { color: var(--teal); }
+  .savings-negative { color: var(--red); }
+
+  /* Empty state */
+  .empty { text-align: center; color: var(--text3); padding: 40px 0; font-size: 14px; }
+
+  /* Divider */
+  .divider { height: 1px; background: var(--border); margin: 4px 0 12px; }
+
+  /* Source buttons */
+  .source-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .source-btn {
+    background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+    border-radius: 10px; padding: 11px 8px; font-family: inherit;
+    color: var(--text2); font-size: 12px; cursor: pointer; text-align: center;
+  }
+  .source-btn:active { background: rgba(255,255,255,0.09); }
+
+  /* Info rows in income tab */
+  .info-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .info-row:last-child { border-bottom: none; }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <div class="header-inner">
+    <div class="header-top">
+      <div>
+        <div class="app-title">💰 ふたりの家計簿</div>
+        <div class="app-subtitle" id="monthLabel"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Notification -->
+<div id="notif" class="notif" style="display:none"></div>
+
+<!-- Content -->
+<div class="content" id="content"></div>
+
+<!-- FAB -->
+<button class="fab" id="fabBtn" onclick="openAddModal()">＋</button>
+
+<!-- Bottom Nav -->
+<nav class="bottom-nav">
+  <button class="nav-btn active" id="nav-dashboard" onclick="setTab('dashboard')">
+    <span class="nav-icon">📊</span>サマリー
+  </button>
+  <button class="nav-btn" id="nav-expenses" onclick="setTab('expenses')">
+    <span class="nav-icon">📋</span>支出
+  </button>
+  <button class="nav-btn" id="nav-paypay" onclick="setTab('paypay')">
+    <span class="nav-icon">📱</span>取込
+  </button>
+  <button class="nav-btn" id="nav-income" onclick="setTab('income')">
+    <span class="nav-icon">💴</span>収入
+  </button>
+</nav>
+
+<!-- Add Modal -->
+<div class="modal-overlay" id="addModal" style="display:none" onclick="closeModalOutside(event)">
+  <div class="modal" id="addModalInner">
+    <div class="modal-handle"></div>
+    <div class="modal-title">＋ 支出を追加</div>
+    <div id="addModalContent"></div>
+  </div>
+</div>
+
+<script>
+// ========== STATE ==========
+const CATEGORIES = [
+  { id: "food_out",  label: "外食",   icon: "🍜", color: "#FF6B6B" },
+  { id: "food_in",   label: "食料品", icon: "🛒", color: "#4ECDC4" },
+  { id: "transport", label: "交通費", icon: "🚃", color: "#45B7D1" },
+  { id: "utility",   label: "光熱費", icon: "💡", color: "#FFA07A" },
+  { id: "medical",   label: "医療費", icon: "🏥", color: "#98D8C8" },
+  { id: "entertainment", label: "娯楽", icon: "🎮", color: "#C3A6FF" },
+  { id: "clothing",  label: "衣類",   icon: "👗", color: "#FFB347" },
+  { id: "daily",     label: "日用品", icon: "🧴", color: "#87CEEB" },
+  { id: "education", label: "教育",   icon: "📚", color: "#DDA0DD" },
+  { id: "other",     label: "その他", icon: "📦", color: "#B0C4DE" },
+];
+
+let state = {
+  tab: "dashboard",
+  incomes: { husband: 350000, wife: 280000 },
+  expenses: [
+    { id: 1, date: "2026-03-01", amount: 3200,  category: "food_out",  memo: "焼肉ランチ",       person: "husband", source: "manual" },
+    { id: 2, date: "2026-03-02", amount: 8500,  category: "food_in",   memo: "スーパーマルエツ", person: "wife",    source: "paypay" },
+    { id: 3, date: "2026-03-03", amount: 1200,  category: "transport", memo: "電車定期補充",     person: "husband", source: "paypay" },
+    { id: 4, date: "2026-03-04", amount: 5800,  category: "food_out",  memo: "記念日ディナー",   person: "wife",    source: "receipt" },
+    { id: 5, date: "2026-03-05", amount: 12000, category: "utility",   memo: "電気代",           person: "husband", source: "manual" },
+    { id: 6, date: "2026-03-06", amount: 4300,  category: "daily",     memo: "ドラッグストア",   person: "wife",    source: "paypay" },
+    { id: 7, date: "2026-03-06", amount: 2100,  category: "food_out",  memo: "カフェ・ランチ",   person: "husband", source: "receipt" },
+    { id: 8, date: "2026-03-07", amount: 6700,  category: "entertainment", memo: "映画＋ポップコーン", person: "wife", source: "paypay" },
+  ],
+  addForm: { date: today(), amount: "", category: "", memo: "", person: "husband", source: "manual" },
+  aiResult: null,
+  aiLoading: false,
+  paypayText: "",
+  paypayLoading: false,
+  paypayResults: [],
+  editIncome: false,
+  tempIncomes: { husband: 350000, wife: 280000 },
+};
+
+function today() {
+  return new Date().toISOString().split("T")[0];
+}
+function currentMonth() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
+}
+function yen(n) { return "¥" + Number(n).toLocaleString("ja-JP"); }
+function getCat(id) { return CATEGORIES.find(c => c.id === id) || CATEGORIES[CATEGORIES.length-1]; }
+
+// ========== COMPUTED ==========
+function computed() {
+  const month = currentMonth();
+  const me = state.expenses.filter(e => e.date.startsWith(month));
+  const hT = me.filter(e => e.person === "husband").reduce((s,e) => s+e.amount, 0);
+  const wT = me.filter(e => e.person === "wife").reduce((s,e) => s+e.amount, 0);
+  const totalExp = hT + wT;
+  const totalInc = state.incomes.husband + state.incomes.wife;
+  const savings = totalInc - totalExp;
+  const hR = totalExp > 0 ? Math.round(hT/totalExp*100) : 50;
+  const wR = 100 - hR;
+  const catTotals = CATEGORIES.map(c => ({
+    ...c, total: me.filter(e => e.category === c.id).reduce((s,e) => s+e.amount, 0)
+  })).filter(c => c.total > 0).sort((a,b) => b.total - a.total);
+  return { me, hT, wT, totalExp, totalInc, savings, hR, wR, catTotals };
+}
+
+// ========== NOTIFICATION ==========
+function showNotif(msg, type="ok") {
+  const el = document.getElementById("notif");
+  el.textContent = msg;
+  el.style.display = "block";
+  el.style.background = type === "err" ? "#CC2222" : "#1E1E50";
+  el.style.color = "white";
+  el.style.border = `1px solid ${type === "err" ? "#FF4444" : "#7C6AF7"}`;
+  clearTimeout(el._t);
+  el._t = setTimeout(() => { el.style.display = "none"; }, 3000);
+}
+
+// ========== TABS ==========
+function setTab(tab) {
+  state.tab = tab;
+  ["dashboard","expenses","paypay","income"].forEach(t => {
+    document.getElementById("nav-"+t).classList.toggle("active", t === tab);
+  });
+  // Hide/show fab
+  document.getElementById("fabBtn").style.display = tab === "expenses" || tab === "dashboard" ? "flex" : "none";
+  render();
+}
+
+// ========== RENDER ==========
+function render() {
+  const d = new Date();
+  document.getElementById("monthLabel").textContent = `${d.getFullYear()}年${d.getMonth()+1}月`;
+  const el = document.getElementById("content");
+  if (state.tab === "dashboard") el.innerHTML = renderDashboard();
+  else if (state.tab === "expenses") el.innerHTML = renderExpenses();
+  else if (state.tab === "paypay") el.innerHTML = renderPaypay();
+  else if (state.tab === "income") el.innerHTML = renderIncome();
+  bindEvents();
+}
+
+// ---- DASHBOARD ----
+function renderDashboard() {
+  const { hT, wT, totalExp, totalInc, savings, hR, wR, catTotals } = computed();
+  const savPct = totalInc > 0 ? Math.max(0, Math.round(savings/totalInc*100)) : 0;
+  return `
+  <div class="grid2">
+    <div class="mini-card">
+      <div class="mini-label">世帯月収合計</div>
+      <div class="mini-value" style="color:#5B9EFF;font-size:18px">${yen(totalInc)}</div>
+    </div>
+    <div class="mini-card">
+      <div class="mini-label">今月の支出合計</div>
+      <div class="mini-value" style="color:#FF6B6B;font-size:18px">${yen(totalExp)}</div>
+    </div>
+    <div class="mini-card" style="background:${savings>=0?'linear-gradient(135deg,#1A2E1A,#1C301C)':'linear-gradient(135deg,#2E1A1A,#301C1C)'}">
+      <div class="mini-label">今月の貯金額</div>
+      <div class="mini-value ${savings>=0?'savings-positive':'savings-negative'}" style="font-size:18px">${savings>=0?'+':''}${yen(savings)}</div>
+    </div>
+    <div class="mini-card">
+      <div class="mini-label">貯金率</div>
+      <div class="mini-value" style="color:#C3A6FF;font-size:22px">${savPct}%</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">💑 支出負担割合</div>
+    <div style="display:flex;gap:12px;margin-bottom:12px">
+      <div style="flex:1">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+          <span style="font-size:16px">👨</span>
+          <span style="font-size:12px;color:var(--text2)">夫</span>
+          <span style="margin-left:auto;font-size:18px;font-weight:700;color:#5B9EFF">${Math.round(hR/10)}割</span>
+        </div>
+        <div style="font-size:13px;font-weight:600;color:#5B9EFF">${yen(hT)}</div>
+      </div>
+      <div style="flex:1">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+          <span style="font-size:16px">👩</span>
+          <span style="font-size:12px;color:var(--text2)">妻</span>
+          <span style="margin-left:auto;font-size:18px;font-weight:700;color:#FF6B9D">${Math.round(wR/10)}割</span>
+        </div>
+        <div style="font-size:13px;font-weight:600;color:#FF6B9D">${yen(wT)}</div>
+      </div>
+    </div>
+    <div class="ratio-bar">
+      <div class="ratio-seg" style="width:${hR}%;background:linear-gradient(90deg,#5B9EFF,#7C6AF7)">${hR>15?`夫 ${hR}%`:''}</div>
+      <div class="ratio-seg" style="width:${wR}%;background:linear-gradient(90deg,#FF6B9D,#FF6B6B)">${wR>15?`妻 ${wR}%`:''}</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">💴 収入内訳</div>
+    ${[["husband","👨 夫","#5B9EFF"],["wife","👩 妻","#FF6B9D"]].map(([k,l,c]) => `
+    <div style="margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;margin-bottom:5px">
+        <span style="font-size:12px;color:var(--text2)">${l}</span>
+        <div style="display:flex;gap:10px;align-items:center">
+          <span style="font-size:13px;font-weight:600;color:${c}">${yen(state.incomes[k])}</span>
+          <span style="font-size:10px;color:var(--text3)">${totalInc>0?Math.round(state.incomes[k]/totalInc*100):0}%</span>
+        </div>
+      </div>
+      <div class="progress"><div class="progress-fill" style="width:${totalInc>0?state.incomes[k]/totalInc*100:0}%;background:${c}"></div></div>
+    </div>`).join('')}
+  </div>
+
+  ${catTotals.length > 0 ? `
+  <div class="card">
+    <div class="card-title">📊 カテゴリ別支出</div>
+    ${catTotals.map(c => `
+    <div style="margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+        <span style="font-size:12px">${c.icon} ${c.label}</span>
+        <div style="display:flex;gap:8px;align-items:center">
+          <span style="font-size:12px;font-weight:600;color:${c.color}">${yen(c.total)}</span>
+          <span style="font-size:10px;color:var(--text3)">${totalExp>0?Math.round(c.total/totalExp*100):0}%</span>
+        </div>
+      </div>
+      <div class="progress"><div class="progress-fill" style="width:${totalExp>0?c.total/totalExp*100:0}%;background:${c.color}"></div></div>
+    </div>`).join('')}
+  </div>` : ''}
+  `;
+}
+
+// ---- EXPENSES ----
+function renderExpenses() {
+  const { me } = computed();
+  const sorted = [...me].sort((a,b) => b.date.localeCompare(a.date));
+  return `
+  <div class="card">
+    <div class="card-title">📋 今月の支出一覧（${me.length}件）</div>
+    ${sorted.length === 0 ? '<div class="empty">まだ支出がありません</div>' : sorted.map(e => {
+      const cat = getCat(e.category);
+      return `
+      <div class="expense-row">
+        <div class="expense-icon">${cat.icon}</div>
+        <div class="expense-info">
+          <div class="expense-name">${e.memo || cat.label}</div>
+          <div class="expense-meta">
+            <span style="font-size:10px;color:var(--text3)">${e.date}</span>
+            <span class="badge" style="background:${cat.color}22;color:${cat.color}">${cat.label}</span>
+            <span class="badge" style="background:${e.person==='husband'?'#5B9EFF22':'#FF6B9D22'};color:${e.person==='husband'?'#5B9EFF':'#FF6B9D'}">${e.person==='husband'?'👨夫':'👩妻'}</span>
+            ${e.source!=='manual'?`<span class="badge" style="background:#C3A6FF22;color:#C3A6FF">${e.source==='paypay'?'📱PayPay':'🧾レシート'}</span>`:''}
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px">
+          <div class="expense-amount">${yen(e.amount)}</div>
+          <button class="del-btn" onclick="deleteExpense(${e.id})">🗑</button>
+        </div>
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+
+// ---- PAYPAY ----
+function renderPaypay() {
+  const resHTML = state.paypayResults.length > 0 ? `
+  <div class="card">
+    <div class="card-title">✅ 解析結果（${state.paypayResults.length}件）</div>
+    ${state.paypayResults.map((r,i) => {
+      const cat = getCat(r.category);
+      return `
+      <div style="display:flex;align-items:center;gap:8px;padding:10px;background:rgba(255,255,255,0.03);border-radius:10px;margin-bottom:6px">
+        <span style="font-size:18px">${cat.icon}</span>
+        <div style="flex:1">
+          <div style="font-size:12px">${r.memo||''}</div>
+          <div style="font-size:10px;color:var(--text3)">${r.date||''} · <span style="color:${cat.color}">${cat.label}</span></div>
+        </div>
+        <div style="font-size:13px;font-weight:700;color:#FF6B6B">${yen(r.amount||0)}</div>
+      </div>`;
+    }).join('')}
+    <div style="font-size:12px;color:var(--text2);text-align:center;margin:12px 0 10px">誰の支出として追加しますか？</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <button class="btn" onclick="addPaypayExpenses('husband')" style="background:rgba(91,158,255,0.12);color:#5B9EFF;border:1px solid rgba(91,158,255,0.3);padding:11px;font-size:13px;border-radius:10px">👨 夫の支出</button>
+      <button class="btn" onclick="addPaypayExpenses('wife')" style="background:rgba(255,107,157,0.12);color:#FF6B9D;border:1px solid rgba(255,107,157,0.3);padding:11px;font-size:13px;border-radius:10px">👩 妻の支出</button>
+    </div>
+  </div>` : '';
+
+  return `
+  <div class="card">
+    <div class="card-title">📱 PayPay 決済履歴取込</div>
+    <div style="font-size:11px;color:var(--text2);margin-bottom:12px">PayPayアプリの決済履歴テキストをコピペすると、AIが自動でカテゴリ分けします。</div>
+    <div class="form-group">
+      <textarea id="paypayTextarea" class="input" rows="7" placeholder="例:&#10;2026/03/05 スターバックス ¥680&#10;2026/03/04 イオン ¥3,240&#10;2026/03/03 マクドナルド ¥890">${state.paypayText}</textarea>
+    </div>
+    <button class="btn btn-primary" id="paypayBtn" onclick="analyzePaypay()" ${state.paypayLoading?'disabled':''} style="margin-bottom:0">
+      ${state.paypayLoading ? '🤖 AI解析中...' : '🤖 AIで自動カテゴリ分け'}
+    </button>
+  </div>
+  ${resHTML}
+  <div class="card">
+    <div class="card-title">🧾 レシート写真読み取り</div>
+    <div style="font-size:11px;color:var(--text2);margin-bottom:12px">レシートの写真を撮ると、AIが自動で金額・カテゴリを判定します。</div>
+    <input type="file" id="receiptFile" accept="image/*" capture="environment" style="display:none" onchange="handleReceiptFile(this)">
+    <button class="btn btn-primary" onclick="document.getElementById('receiptFile').click()" ${state.aiLoading?'disabled':''}>
+      ${state.aiLoading ? '🤖 AI解析中...' : '📷 カメラ / 写真から読み取り'}
+    </button>
+    ${state.aiResult ? `
+    <div class="ai-box">
+      <div class="ai-box-title">✅ 読み取り完了</div>
+      <div class="ai-box-row">🏪 ${state.aiResult.store||'不明'}</div>
+      <div class="ai-box-row">💰 ${yen(state.aiResult.amount||0)}</div>
+      <div class="ai-box-row">${getCat(state.aiResult.category).icon} ${getCat(state.aiResult.category).label}</div>
+      <button class="btn btn-primary" onclick="openAddModal()" style="margin-top:10px;font-size:13px;padding:10px">支出として追加する →</button>
+    </div>` : ''}
+  </div>`;
+}
+
+// ---- INCOME ----
+function renderIncome() {
+  const totalInc = state.incomes.husband + state.incomes.wife;
+  return `
+  <div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+      <div class="card-title" style="margin:0">💴 月収設定</div>
+      ${!state.editIncome ?
+        `<button class="btn btn-ghost btn-sm" onclick="startEditIncome()">✏️ 編集</button>` :
+        `<div style="display:flex;gap:8px">
+          <button class="btn btn-ghost btn-sm" onclick="cancelEditIncome()">キャンセル</button>
+          <button class="btn btn-primary btn-sm" onclick="saveIncomes()" style="width:auto">保存</button>
+        </div>`
+      }
+    </div>
+    ${[["husband","👨 夫の月収","#5B9EFF"],["wife","👩 妻の月収","#FF6B9D"]].map(([k,l,c]) => `
+    <div class="form-group">
+      <label class="form-label">${l}</label>
+      ${state.editIncome ?
+        `<input type="number" class="input" id="income_${k}" value="${state.tempIncomes[k]}">` :
+        `<div style="font-size:26px;font-weight:700;color:${c};letter-spacing:-0.5px">${yen(state.incomes[k])}</div>`
+      }
+    </div>`).join('')}
+    <div style="background:rgba(255,255,255,0.04);border-radius:12px;padding:14px;margin-top:4px">
+      <div style="font-size:11px;color:var(--text2);margin-bottom:6px">世帯月収合計</div>
+      <div style="font-size:26px;font-weight:700;color:#4ECDC4;letter-spacing:-0.5px">${yen(totalInc)}</div>
+    </div>
+  </div>`;
+}
+
+// ---- ADD MODAL ----
+function renderAddModal() {
+  const f = state.addForm;
+  return `
+  <div class="form-group">
+    <label class="form-label">日付</label>
+    <input type="date" class="input" id="af_date" value="${f.date}">
+  </div>
+  <div class="form-group">
+    <label class="form-label">金額（円）*</label>
+    <input type="number" class="input" id="af_amount" placeholder="例: 3200" value="${f.amount}" inputmode="numeric">
+  </div>
+  <div class="form-group">
+    <label class="form-label">カテゴリ *</label>
+    <select class="select" id="af_category">
+      <option value="">選択してください</option>
+      ${CATEGORIES.map(c => `<option value="${c.id}" ${f.category===c.id?'selected':''}>${c.icon} ${c.label}</option>`).join('')}
+    </select>
+  </div>
+  <div class="form-group">
+    <label class="form-label">メモ</label>
+    <input type="text" class="input" id="af_memo" placeholder="例: スーパーで買い物" value="${f.memo}">
+  </div>
+  <div class="form-group">
+    <label class="form-label">支払い者</label>
+    <div class="person-toggle">
+      <button class="person-btn ${f.person==='husband'?'active-h':''}" onclick="setFormPerson('husband')" id="pb_husband">👨 夫</button>
+      <button class="person-btn ${f.person==='wife'?'active-w':''}" onclick="setFormPerson('wife')" id="pb_wife">👩 妻</button>
+    </div>
+  </div>
+  <div class="divider"></div>
+  <div class="form-group">
+    <label class="form-label">📷 レシート写真から自動入力</label>
+    <input type="file" id="modalReceiptFile" accept="image/*" capture="environment" style="display:none" onchange="handleReceiptFileModal(this)">
+    <button class="btn btn-ghost" onclick="document.getElementById('modalReceiptFile').click()" style="width:100%;padding:11px" ${state.aiLoading?'disabled':''}>
+      ${state.aiLoading ? '🤖 AI解析中...' : '📷 カメラ / 写真から読み取り'}
+    </button>
+    ${state.aiResult ? `
+    <div class="ai-box" style="margin-top:8px">
+      <div class="ai-box-title">✅ 読み取り完了 — 自動入力しました</div>
+      <div class="ai-box-row">🏪 ${state.aiResult.store||'不明'} / ${yen(state.aiResult.amount||0)}</div>
+    </div>` : ''}
+  </div>
+  <button class="btn btn-primary" onclick="addExpense()" style="margin-top:4px">追加する</button>
+  `;
+}
+
+// ========== ACTIONS ==========
+function openAddModal() {
+  syncFormFromState();
+  document.getElementById("addModalContent").innerHTML = renderAddModal();
+  document.getElementById("addModal").style.display = "flex";
+}
+function closeModalOutside(e) {
+  if (e.target === document.getElementById("addModal")) closeAddModal();
+}
+function closeAddModal() {
+  document.getElementById("addModal").style.display = "none";
+}
+function syncFormToState() {
+  const d = document.getElementById("af_date");
+  const a = document.getElementById("af_amount");
+  const c = document.getElementById("af_category");
+  const m = document.getElementById("af_memo");
+  if (d) state.addForm.date = d.value;
+  if (a) state.addForm.amount = a.value;
+  if (c) state.addForm.category = c.value;
+  if (m) state.addForm.memo = m.value;
+}
+function syncFormFromState() {}
+
+function setFormPerson(p) {
+  state.addForm.person = p;
+  const bh = document.getElementById("pb_husband");
+  const bw = document.getElementById("pb_wife");
+  if (bh) bh.className = `person-btn ${p==='husband'?'active-h':''}`;
+  if (bw) bw.className = `person-btn ${p==='wife'?'active-w':''}`;
+}
+
+function addExpense() {
+  syncFormToState();
+  const f = state.addForm;
+  if (!f.amount || !f.category) { showNotif("⚠️ 金額とカテゴリを入力してください", "err"); return; }
+  state.expenses.push({ ...f, id: Date.now(), amount: Number(f.amount) });
+  state.addForm = { date: today(), amount: "", category: "", memo: "", person: "husband", source: "manual" };
+  state.aiResult = null;
+  closeAddModal();
+  showNotif("✅ 支出を追加しました！");
+  render();
+}
+
+function deleteExpense(id) {
+  state.expenses = state.expenses.filter(e => e.id !== id);
+  showNotif("🗑️ 削除しました");
+  render();
+}
+
+function startEditIncome() {
+  state.tempIncomes = { ...state.incomes };
+  state.editIncome = true;
+  render();
+}
+function cancelEditIncome() {
+  state.editIncome = false;
+  render();
+}
+function saveIncomes() {
+  const h = document.getElementById("income_husband");
+  const w = document.getElementById("income_wife");
+  if (h) state.incomes.husband = Number(h.value) || 0;
+  if (w) state.incomes.wife = Number(w.value) || 0;
+  state.editIncome = false;
+  showNotif("✅ 収入を更新しました！");
+  render();
+}
+
+// ========== PAYPAY AI ==========
+async function analyzePaypay() {
+  const ta = document.getElementById("paypayTextarea");
+  if (ta) state.paypayText = ta.value;
+  if (!state.paypayText.trim()) return;
+  state.paypayLoading = true;
+  render();
+  try {
+    const resp = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 2000,
+        messages: [{ role: "user", content:
+          `以下はPayPayや決済の履歴テキストです。各決済を解析してJSON配列のみで返してください（説明不要、コードブロック不要）:\n[{"date":"YYYY-MM-DD","amount":金額,"category":"food_out|food_in|transport|utility|medical|entertainment|clothing|daily|education|other","memo":"店名や用途"}]\n\nカテゴリ: food_out=外食レストラン, food_in=スーパー食料品, transport=交通, utility=公共料金, medical=医療, entertainment=娯楽映画, clothing=衣類, daily=日用品コンビニ, education=教育, other=その他\n\n履歴:\n${state.paypayText}`
+        }]
+      })
+    });
+    const data = await resp.json();
+    const text = (data.content||[]).map(b => b.text||"").join("");
+    const clean = text.replace(/```json|```/g,"").trim();
+    const parsed = JSON.parse(clean);
+    state.paypayResults = Array.isArray(parsed) ? parsed : [];
+    showNotif(`✅ ${state.paypayResults.length}件を検出しました！`);
+  } catch(e) {
+    showNotif("⚠️ 解析に失敗しました", "err");
+    state.paypayResults = [];
+  } finally {
+    state.paypayLoading = false;
+    render();
+  }
+}
+
+function addPaypayExpenses(person) {
+  const items = state.paypayResults.map((r,i) => ({
+    id: Date.now()+i, date: r.date||today(), amount: Number(r.amount)||0,
+    category: r.category||"other", memo: r.memo||"", person, source: "paypay"
+  }));
+  state.expenses.push(...items);
+  state.paypayResults = [];
+  state.paypayText = "";
+  showNotif(`✅ ${items.length}件を追加しました！`);
+  render();
+}
+
+// ========== RECEIPT AI ==========
+async function analyzeReceipt(file, fromModal) {
+  state.aiLoading = true;
+  state.aiResult = null;
+  if (fromModal) {
+    document.getElementById("addModalContent").innerHTML = renderAddModal();
+  } else { render(); }
+
+  try {
+    const base64 = await new Promise((res,rej) => {
+      const r = new FileReader();
+      r.onload = () => res(r.result.split(",")[1]);
+      r.onerror = rej;
+      r.readAsDataURL(file);
+    });
+    const resp = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 1000,
+        messages: [{ role: "user", content: [
+          { type: "image", source: { type: "base64", media_type: file.type, data: base64 } },
+          { type: "text", text: `このレシートを解析してください。JSON形式のみで返答（説明不要）:\n{"store":"店名","date":"YYYY-MM-DD","amount":金額数値,"category":"food_out|food_in|transport|utility|medical|entertainment|clothing|daily|education|other","memo":"説明"}\nカテゴリ: food_out=外食, food_in=食料品, transport=交通費, utility=光熱費, medical=医療費, entertainment=娯楽, clothing=衣類, daily=日用品, education=教育, other=その他` }
+        ]}]
+      })
+    });
+    const data = await resp.json();
+    const text = (data.content||[]).map(b => b.text||"").join("");
+    const clean = text.replace(/```json|```/g,"").trim();
+    const parsed = JSON.parse(clean);
+    state.aiResult = parsed;
+    state.addForm.amount = String(parsed.amount||"");
+    state.addForm.category = parsed.category||"";
+    state.addForm.memo = `${parsed.store||""} ${parsed.memo||""}`.trim();
+    state.addForm.date = parsed.date||today();
+    state.addForm.source = "receipt";
+    showNotif("✅ レシートを読み取りました！");
+  } catch(e) {
+    showNotif("⚠️ 読み取りに失敗しました", "err");
+  } finally {
+    state.aiLoading = false;
+    if (fromModal) {
+      document.getElementById("addModalContent").innerHTML = renderAddModal();
+    } else { render(); }
+  }
+}
+
+function handleReceiptFile(el) {
+  if (el.files[0]) analyzeReceipt(el.files[0], false);
+}
+function handleReceiptFileModal(el) {
+  if (el.files[0]) analyzeReceipt(el.files[0], true);
+}
+
+// ========== BIND EVENTS ==========
+function bindEvents() {
+  const ta = document.getElementById("paypayTextarea");
+  if (ta) ta.addEventListener("input", e => { state.paypayText = e.target.value; });
+}
+
+// ========== INIT ==========
+render();
+</script>
+</body>
+</html>
